@@ -1,0 +1,12 @@
+# Only dependency definitions belong in the image build context.
+# Application files are installed separately; no private /config or icons enter a layer.
+**
+!Dockerfile
+!scripts/
+!scripts/install-qq.sh
+!mobile-services/
+!mobile-services/qq/
+!mobile-services/qq/start
+!mobile/
+!mobile/requirements.txt
+!mobile/requirements-push.txt

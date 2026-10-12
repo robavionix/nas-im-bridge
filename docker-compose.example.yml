@@ -1,0 +1,58 @@
+services:
+  chat:
+    image: ${CHAT_IMAGE:-nas-im-bridge:local}
+    build:
+      context: .
+      dockerfile: ${CLIENT_DOCKERFILE:-Dockerfile}
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-ghcr.io/linuxserver/baseimage-selkies@sha256:7cab02f9222937ad1e704cd904534d69a2300b2406af466241817be0ce1d0493}
+    container_name: ${CONTAINER_NAME:-im-bridge}
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-Asia/Shanghai}
+      DISPLAY: ":1"
+      CHAT_CLIENT: ${CHAT_CLIENT:-qq}
+      QQ_UI_SCALE: ${QQ_UI_SCALE:-3}
+      # Disable nested Docker from the desktop base image; it is not needed here.
+      START_DOCKER: "false"
+      LC_ALL: zh_CN.UTF-8
+      TITLE: Remote Desktop
+      # The mobile adapter fits each client's window to this tall desktop.
+      SELKIES_MANUAL_WIDTH: "${DESKTOP_WIDTH:-4200}"
+      SELKIES_MANUAL_HEIGHT: "${DESKTOP_HEIGHT:-6000}"
+      SELKIES_MANUAL_RESOLUTION: "true|locked"
+      SELKIES_USE_CSS_SCALING: "true|locked"
+      SELKIES_UI_SHOW_SIDEBAR: "false"
+      SELKIES_UI_SHOW_CORE_BUTTONS: "false"
+      CUSTOM_USER: user
+      # Also the phone view's login password.
+      PASSWORD: ${WEB_PASSWORD:?Set WEB_PASSWORD in .env}
+      SUBFOLDER: /
+      HARDEN_DESKTOP: "true"
+      HARDEN_OPENBOX: "true"
+      SELKIES_ENABLE_SHARING: "false"
+      SELKIES_ENABLE_COLLAB: "false"
+      SELKIES_FILE_TRANSFERS: upload,download
+      NO_GAMEPAD: "true"
+      NO_WEBCAM: "true"
+      AUTO_GPU: "false"
+      PIXELFLUX_WAYLAND: "false"
+    volumes:
+      - ./config:/config
+      # nginx runs as www-data; expose only public web assets, not private /config.
+      - ./config/mobile/web:/var/www/nas-im-bridge:ro
+      - ./mobile-init:/custom-cont-init.d:ro
+      - ./mobile-services:/custom-services.d:ro
+    ports:
+      # Local only: put an HTTPS reverse proxy or tunnel in front of it.
+      - "127.0.0.1:${HTTP_PORT:-5805}:3000"
+    shm_size: ${SHM_SIZE:-1gb}
+    mem_limit: ${MEM_LIMIT:-4g}
+    healthcheck:
+      test: ["CMD", "s6-setuidgid", "abc", "/custom-services.d/mobile/python", "/custom-services.d/mobile/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 3
+    restart: unless-stopped

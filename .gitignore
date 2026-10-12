@@ -1,0 +1,42 @@
+# Secrets and container data
+.env
+.env.*
+!.env.example
+config/
+
+# Runtime files written next to server.py when the repository folder is used directly
+mobile/session.key
+mobile/send-results.json
+mobile/*.tmp
+mobile/uploads/
+mobile/debug/
+mobile/push/
+mobile/push-deps/
+
+# Deployment-only certificates, private icons, addresses and diagnostics
+lan-proxy/authority/
+lan-proxy/tls/
+lan-proxy/nginx.conf
+lan-proxy/compose.yaml
+mobile/web/lan-icons/
+mobile/web/icons/private-*/
+private-branding/
+mobile/web/lan-root.cer
+mobile/web/*.mobileconfig
+diagnostics/
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.mobileconfig
+*.deb
+*.log
+screenshots/
+captures/
+.codex/
+
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

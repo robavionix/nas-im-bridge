@@ -1,6 +1,31 @@
-// Network only: do not cache messages, credentials, or screenshots.
+// Only versioned application scripts are cached. Documents, messages,
+// credentials, screenshots and all API calls always use the network.
+const ASSET_CACHE='nas-mobile-assets-20261014-1';
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+  try{for(const name of await caches.keys())if(name.startsWith('nas-mobile-assets-')&&name!==ASSET_CACHE)await caches.delete(name)}catch{}
+  await self.clients.claim();
+})()));
+self.addEventListener('fetch',event=>{
+  const request=event.request,url=new URL(request.url);
+  if(request.method!=='GET'||url.origin!==self.location.origin||url.searchParams.size!==1
+    ||!/^\/mobile\/(panes|app|render|navigation|push|touch|presence|keyboard)\.js$/.test(url.pathname)
+    ||!/^[A-Za-z0-9._-]{1,64}$/.test(url.searchParams.get('v')||''))return;
+  event.respondWith((async()=>{
+    let cache;
+    try{cache=await caches.open(ASSET_CACHE);const hit=await cache.match(request);if(hit)return hit}catch{}
+    const response=await fetch(request);
+    // Authentication redirects and error pages must never become JS assets.
+    if(cache&&response.ok&&!response.redirected&&/javascript/.test(response.headers.get('Content-Type')||'')){
+      try{
+        await cache.put(request,response.clone());
+        const keys=await cache.keys();
+        for(const old of keys.slice(0,Math.max(0,keys.length-32)))await cache.delete(old);
+      }catch{}
+    }
+    return response;
+  })());
+});
 self.addEventListener('push',event=>{
   let payload={};try{payload=event.data?.json()||{}}catch{}
   const title=typeof payload.title==='string'&&payload.title.trim()?payload.title.slice(0,100):'聊天 · 新消息';
